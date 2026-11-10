@@ -1,0 +1,23 @@
+services:
+  backend:
+    build: ./backend
+    container_name: team-task-backend
+    ports:
+      - "5000:5000"
+    volumes:
+      - task-data:/data
+    restart: unless-stopped
+
+  frontend:
+    image: nginx:alpine
+    container_name: team-task-frontend
+    ports:
+      - "8083:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  task-data:

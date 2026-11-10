@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Team Task & Note List</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: Arial, sans-serif;
+            background: #f3f4f6;
+            margin: 0;
+            padding: 30px;
+            color: #263238;
+        }
+        .container {
+            max-width: 850px;
+            margin: auto;
+            background: white;
+            padding: 28px;
+            border-radius: 12px;
+            box-shadow: 0 3px 15px #00000012;
+        }
+        h1 { color: #245b78; margin-bottom: 5px; }
+        .subtitle { color: #64748b; margin-bottom: 25px; }
+        input, textarea, button {
+            width: 100%;
+            padding: 12px;
+            margin: 7px 0;
+            border: 1px solid #cbd5e1;
+            border-radius: 7px;
+            font-size: 14px;
+        }
+        textarea { resize: vertical; min-height: 65px; }
+        button {
+            background: #245b78;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover { background: #17445e; }
+        .task {
+            border: 1px solid #e2e8f0;
+            border-left: 5px solid #245b78;
+            padding: 15px;
+            margin-top: 12px;
+            border-radius: 7px;
+        }
+        .task button { width: auto; margin-right: 5px; }
+        .delete { background: #dc3545; }
+        .done { background: #198754; }
+        .status { font-weight: bold; color: #64748b; }
+        #message { color: #198754; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Team Task & Note List</h1>
+    <p class="subtitle">Papan catatan dan pengelolaan tugas kelompok</p>
+
+    <h3>Tambah Tugas Baru</h3>
+    <input id="title" placeholder="Judul tugas">
+    <input id="assignee" placeholder="Nama anggota yang bertanggung jawab">
+    <textarea id="note" placeholder="Catatan atau deskripsi tugas"></textarea>
+    <button onclick="addTask()">+ Tambahkan Tugas</button>
+    <p id="message"></p>
+
+    <h3>Daftar Tugas Kelompok</h3>
+    <div id="taskList">Memuat tugas...</div>
+</div>
+
+<script>
+const API = "http://localhost:5000";
+
+async function loadTasks() {
+    try {
+        const response = await fetch(API + "/tasks");
+        const data = await response.json();
+        const list = document.getElementById("taskList");
+
+        list.innerHTML = "";
+
+        if (data.tasks.length === 0) {
+            list.innerHTML = "<p>Belum ada tugas.</p>";
+            return;
+        }
+
+        data.tasks.forEach(task => {
+            const item = document.createElement("div");
+            item.className = "task";
+
+            const title = document.createElement("h3");
+            title.textContent = task.title;
+
+            const assignee = document.createElement("p");
+            assignee.textContent = "Penanggung jawab: " + task.assignee;
+
+            const note = document.createElement("p");
+            note.textContent = "Catatan: " + task.note;
+
+            const status = document.createElement("p");
+            status.className = "status";
+            status.textContent = "Status: " + task.status;
+
+            const doneButton = document.createElement("button");
+            doneButton.className = "done";
+            doneButton.textContent = "Tandai Selesai";
+            doneButton.onclick = () => updateTask(task.id);
+
+            const deleteButton = document.createElement("button");
+            deleteButton.className = "delete";
+            deleteButton.textContent = "Hapus";
+            deleteButton.onclick = () => deleteTask(task.id);
+
+            item.append(title, assignee, note, status, doneButton, deleteButton);
+            list.appendChild(item);
+        });
+    } catch (error) {
+        document.getElementById("taskList").textContent =
+            "Tidak dapat terhubung ke backend.";
+    }
+}
+
+async function addTask() {
+    const title = document.getElementById("title").value;
+    const assignee = document.getElementById("assignee").value;
+    const note = document.getElementById("note").value;
+
+    const response = await fetch(API + "/tasks", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({title, assignee, note})
+    });
+
+    const result = await response.json();
+    document.getElementById("message").textContent =
+        result.message || result.error;
+
+    if (response.ok) {
+        document.getElementById("title").value = "";
+        document.getElementById("assignee").value = "";
+        document.getElementById("note").value = "";
+        loadTasks();
+    }
+}
+
+async function updateTask(id) {
+    await fetch(API + "/tasks/" + id, {
+        method: "PUT",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({status: "Selesai"})
+    });
+    loadTasks();
+}
+
+async function deleteTask(id) {
+    await fetch(API + "/tasks/" + id, {method: "DELETE"});
+    loadTasks();
+}
+
+loadTasks();
+</script>
+</body>
+</html>
